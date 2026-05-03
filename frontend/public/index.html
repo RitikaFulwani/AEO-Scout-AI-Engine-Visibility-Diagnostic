@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEO Scout — AI Engine Visibility Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #04070f;
+  --surface: #080d1a;
+  --surface2: #0d1424;
+  --surface3: #111b30;
+  --border: #172038;
+  --border2: #1f2d4a;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.15);
+  --accent2: #8b5cf6;
+  --accent3: #06b6d4;
+  --gold: #f59e0b;
+  --text: #e8f0ff;
+  --text2: #8ba3cc;
+  --muted: #3d5278;
+  --gemini: #818cf8;
+  --gemini-glow: rgba(129,140,248,0.12);
+  --danger: #f43f5e;
+  --success: #10b981;
+  --warn: #f59e0b;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Background ── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.bg-orb {
+  position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+  filter: blur(100px); opacity: 0.18;
+}
+.bg-orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, #3b82f6, transparent); top: -300px; right: -150px; }
+.bg-orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #8b5cf6, transparent); bottom: -200px; left: -100px; }
+.bg-orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #06b6d4, transparent); top: 40%; left: 40%; opacity: 0.08; }
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+
+/* ── Header ── */
+header {
+  padding: 28px 0 24px;
+  display: flex; align-items: center; gap: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 56px;
+}
+
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.logo-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 0 20px rgba(59,130,246,0.3);
+  flex-shrink: 0;
+}
+
+.logo-name {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.3px; color: var(--text);
+}
+
+.logo-tagline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px;
+}
+
+.header-right {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+}
+
+.pill {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+  padding: 4px 10px; border-radius: 100px; text-transform: uppercase;
+}
+.pill-accent { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: var(--accent); }
+.pill-gemini { background: rgba(129,140,248,0.1); border: 1px solid rgba(129,140,248,0.25); color: var(--gemini); }
+
+/* ── Hero ── */
+.hero { text-align: center; margin-bottom: 52px; }
+
+.hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: ''; flex: 1; max-width: 60px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent));
+}
+.hero-eyebrow::after { background: linear-gradient(90deg, var(--accent), transparent); }
+
+.hero h2 {
+  font-size: clamp(34px, 5.5vw, 58px); font-weight: 700;
+  letter-spacing: -2px; line-height: 1.05; margin-bottom: 18px;
+  color: var(--text);
+}
+
+.hero h2 em {
+  font-style: normal;
+  background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hero p {
+  color: var(--text2); font-size: 16px; max-width: 480px; margin: 0 auto;
+  line-height: 1.65; font-weight: 400;
+}
+
+/* ── Search Card ── */
+.search-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px; padding: 28px;
+  margin-bottom: 44px;
+  position: relative; overflow: hidden;
+}
+
+.search-card::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 60%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+  opacity: 0.6;
+}
+
+.fields-row {
+  display: grid; grid-template-columns: 1fr 280px; gap: 12px; margin-bottom: 12px;
+}
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+.field-input {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 12px 16px;
+  color: var(--text); font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.field-input::placeholder { color: var(--muted); }
+
+.btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 10px;
+  padding: 12px 28px; color: #fff;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: 14px; cursor: pointer; white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.2);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(59,130,246,0.35); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.chips-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+.chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 4px 11px;
+  font-size: 12px; color: var(--text2); cursor: pointer;
+  transition: all 0.15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+.error-banner {
+  background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.2);
+  border-radius: 8px; padding: 12px 16px;
+  color: var(--danger); font-size: 13px; margin-top: 12px;
+  display: none; font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Loading ── */
+#loading { display: none; text-align: center; padding: 80px 0; }
+
+.loader-wrap { position: relative; display: inline-block; margin-bottom: 24px; }
+
+.loader-ring {
+  width: 56px; height: 56px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--gemini);
+  border-right-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-dot {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gemini);
+  box-shadow: 0 0 10px var(--gemini);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)} 50%{opacity:0.5;transform:translate(-50%,-50%) scale(0.7)} }
+
+.loader-text {
+  color: var(--text2); font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 0.05em;
+}
+.loader-model {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  color: var(--gemini); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+}
+.loader-model-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gemini); animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── Results ── */
+#results { display: none; }
+
+.results-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.results-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.results-query {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--accent); background: var(--accent-glow);
+  border: 1px solid rgba(59,130,246,0.2); border-radius: 100px;
+  padding: 5px 14px; max-width: 400px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── KPI Strip ── */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 18px 16px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.kpi-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+
+.kpi-card::before {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  border-radius: 0 0 14px 14px;
+}
+.kpi-card.kpi-score::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.kpi-card.kpi-brand::before { background: linear-gradient(90deg, var(--success), #06b6d4); }
+.kpi-card.kpi-brand.miss::before { background: linear-gradient(90deg, var(--danger), #f97316); }
+.kpi-card.kpi-brands::before { background: linear-gradient(90deg, var(--gold), #f97316); }
+.kpi-card.kpi-speed::before { background: linear-gradient(90deg, var(--gemini), var(--accent3)); }
+
+.kpi-val {
+  font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.kpi-label {
+  font-size: 10px; color: var(--text2); text-transform: uppercase;
+  letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace;
+}
+.kpi-sub {
+  font-size: 11px; color: var(--muted); margin-top: 4px;
+}
+
+/* ── Main Score Card ── */
+.score-area { margin-bottom: 28px; }
+
+.gemini-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px; padding: 32px;
+  position: relative; overflow: hidden;
+}
+.gemini-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--gemini), var(--accent), var(--accent3));
+}
+
+.gc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+
+.gc-model { display: flex; align-items: center; gap: 12px; }
+.gc-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--gemini-glow); border: 1px solid rgba(129,140,248,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--gemini);
+}
+.gc-name { font-size: 18px; font-weight: 700; }
+.gc-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.gc-grade {
+  font-family: 'JetBrains Mono', monospace; font-size: 72px; font-weight: 700;
+  line-height: 1; letter-spacing: -2px;
+}
+
+.gc-body { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+
+.gc-score-block {}
+.gc-score-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 42px; font-weight: 700;
+  line-height: 1; margin-bottom: 4px;
+}
+.gc-score-label {
+  font-size: 11px; color: var(--text2); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 14px;
+}
+.gc-bar-track {
+  background: var(--surface2); border-radius: 100px; height: 8px; overflow: hidden;
+}
+.gc-bar-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--gemini), var(--accent));
+  transition: width 1.2s cubic-bezier(0.4,0,0.2,1); width: 0;
+  box-shadow: 0 0 10px rgba(129,140,248,0.4);
+}
+
+.gc-meta { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.gc-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--surface2); border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.gc-meta-key { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.gc-meta-val { font-size: 13px; font-weight: 600; }
+
+.sentiment-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 100px;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.sentiment-badge.Positive { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+.sentiment-badge.Neutral  { background: rgba(61,82,120,0.2); color: var(--text2); border: 1px solid var(--border); }
+.sentiment-badge.Negative { background: rgba(244,63,94,0.1); color: var(--danger); border: 1px solid rgba(244,63,94,0.2); }
+
+/* ── Panels ── */
+.panels-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 22px;
+}
+
+.panel-head {
+  display: flex; align-items: center; gap: 9px; margin-bottom: 18px;
+}
+.panel-icon {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.panel-title { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+
+/* Brand rows */
+.brand-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.brand-item:last-child { border-bottom: none; }
+
+.brand-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); width: 18px;
+}
+.brand-name { flex: 1; font-size: 13px; font-weight: 500; }
+.brand-bar-wrap { width: 60px; background: var(--surface2); border-radius: 100px; height: 4px; overflow: hidden; }
+.brand-bar-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gemini), var(--accent3)); transition: width 1s 0.2s ease; width: 0; }
+.brand-count {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+  background: var(--surface3); padding: 2px 7px; border-radius: 100px;
+  border: 1px solid var(--border);
+}
+
+/* Breakdown */
+.breakdown-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.bd-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text2); width: 140px; flex-shrink: 0; }
+.bd-track { flex: 1; background: var(--surface2); border-radius: 100px; height: 6px; overflow: hidden; }
+.bd-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 1s 0.4s cubic-bezier(0.4,0,0.2,1); width: 0;
+}
+.bd-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ── Recommendations ── */
+.rec-panel {
+  background: linear-gradient(135deg, rgba(59,130,246,0.04), rgba(139,92,246,0.04));
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 16px; padding: 22px; margin-bottom: 16px;
+}
+.rec-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  font-size: 14px; font-weight: 600; color: var(--accent);
+}
+.rec-list { display: flex; flex-direction: column; gap: 9px; }
+.rec-item {
+  display: flex; gap: 10px; font-size: 13px; line-height: 1.55; color: var(--text2);
+}
+.rec-arrow { color: var(--accent); flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 1px; }
+
+/* ── Response panel ── */
+.response-panel { margin-bottom: 32px; }
+.response-body {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px;
+  font-size: 13.5px; line-height: 1.8; color: var(--text2);
+  max-height: 300px; overflow-y: auto; white-space: pre-wrap;
+}
+.response-body::-webkit-scrollbar { width: 3px; }
+.response-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.tracked {
+  background: rgba(59,130,246,0.15); border-radius: 3px;
+  padding: 1px 4px; color: #93c5fd; font-weight: 600;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+@media (max-width: 768px) {
+  .fields-row { grid-template-columns: 1fr; }
+  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  .panels-row { grid-template-columns: 1fr; }
+  .gc-body { grid-template-columns: 1fr; }
+  .gc-top { flex-direction: column; gap: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">A</div>
+      <div>
+        <div class="logo-name">AEO Scout</div>
+        <div class="logo-tagline">AI Engine Optimization</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="pill pill-gemini">Gemini 2.5</span>
+      <span class="pill pill-accent">Beta v1.0</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-eyebrow">AI Engine Optimization Diagnostic</div>
+    <h2>Is your brand <em>visible</em><br/>to AI shoppers?</h2>
+    <p>Ask any shopper question and instantly see which brands Gemini recommends — and how your brand ranks.</p>
+  </div>
+
+  <div class="search-card">
+    <div class="fields-row">
+      <div class="field-group">
+        <label class="field-label">Shopper Query</label>
+        <input class="field-input" type="text" id="queryInput"
+          placeholder='e.g. "best magnesium supplement for seniors with sleep issues"' />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Your Brand (optional)</label>
+        <input class="field-input" type="text" id="brandInput" placeholder='e.g. Nature Made' />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="analyzeBtn" onclick="runAnalysis()">⚡ Analyze Now</button>
+    </div>
+    <div class="chips">
+      <span class="chips-label">Try:</span>
+      <span class="chip" onclick="fillQuery('best magnesium supplement for seniors')">magnesium for seniors</span>
+      <span class="chip" onclick="fillQuery('top protein powder for weight loss')">protein powder weight loss</span>
+      <span class="chip" onclick="fillQuery('best sleep supplement without melatonin')">sleep without melatonin</span>
+      <span class="chip" onclick="fillQuery('multivitamin for women over 50')">multivitamin women 50+</span>
+    </div>
+    <div class="error-banner" id="errorBanner"></div>
+  </div>
+
+  <div id="loading">
+    <div class="loader-wrap">
+      <span class="loader-ring"></span>
+      <span class="loader-dot"></span>
+    </div>
+    <div class="loader-text">Querying AI engine…</div>
+    <div class="loader-model">
+      <span class="loader-model-dot"></span>
+      Gemini 2.5 Flash
+    </div>
+  </div>
+
+  <div id="results">
+
+    <div class="results-header">
+      <span class="results-title">Report Card</span>
+      <span class="results-query" id="queryPill"></span>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip" id="kpiStrip"></div>
+
+    <!-- Gemini main card -->
+    <div class="score-area">
+      <div class="gemini-card" id="geminiCard"></div>
+    </div>
+
+    <!-- Recs -->
+    <div class="rec-panel" id="recPanel"></div>
+
+    <!-- Brand mentions + Breakdown -->
+    <div class="panels-row">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-icon">🏆</span>
+          <span class="panel-title">Top Mentioned Brands</span>
+        </div>
+        <div id="brandList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-icon">📊</span>
+          <span class="panel-title">Score Breakdown</span>
+        </div>
+        <div id="breakdownList"></div>
+      </div>
+    </div>
+
+    <!-- Full response -->
+    <div class="panel response-panel">
+      <div class="panel-head">
+        <span class="panel-icon">💬</span>
+        <span class="panel-title">Full Gemini Response</span>
+      </div>
+      <div class="response-body" id="responseBody"></div>
+    </div>
+
+  </div><!-- #results -->
+</div><!-- .wrap -->
+
+<script>
+const API_BASE = ['localhost','127.0.0.1'].includes(location.hostname) ? 'http://localhost:3001' : '';
+
+function fillQuery(q) { document.getElementById('queryInput').value = q; }
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightBrand(text, brand) {
+  if (!brand) return escapeHtml(text);
+  const safe = escapeHtml(text);
+  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return safe.replace(new RegExp(`(${escaped})`, 'gi'), '<span class="tracked">$1</span>');
+}
+
+function gradeColor(s) {
+  if (s >= 70) return 'var(--success)';
+  if (s >= 40) return 'var(--warn)';
+  return 'var(--danger)';
+}
+
+function letterGrade(s) {
+  if (s >= 85) return 'A+';
+  if (s >= 75) return 'A';
+  if (s >= 65) return 'B+';
+  if (s >= 55) return 'B';
+  if (s >= 45) return 'C';
+  if (s >= 35) return 'D';
+  return 'F';
+}
+
+function isBrandMentioned(text, brand) {
+  if (!brand || !text) return false;
+  return text.toLowerCase().includes(brand.trim().toLowerCase());
+}
+
+function generateRecs(data) {
+  const recs = [];
+  const brand = data.brandToTrack;
+  const geminiText = data.models.gemini?.text || '';
+  const mentioned = isBrandMentioned(geminiText, brand);
+  const score = data.models.gemini?.scores?.total ?? 0;
+  const topBrand = data.aggregatedMentions?.[0];
+
+  if (brand && !mentioned) {
+    recs.push(`<strong style="color:var(--text)">"${brand}"</strong> was not mentioned by Gemini for this query. Increase review volume, add structured FAQ content, and optimize your product title to match conversational search patterns.`);
+  } else if (brand && mentioned) {
+    recs.push(`<strong style="color:var(--success)">Great — "${brand}" appeared</strong> in Gemini's response! To improve ranking position, focus on earning featured placements in review articles and building topical authority around this query.`);
+  }
+
+  if (score < 40) {
+    recs.push('Overall AEO score is low. Create content that directly answers shopper questions — conversational, fact-dense pages perform best in AI responses.');
+  } else if (score >= 70) {
+    recs.push('Strong AEO score for this query. Maintain content freshness and monitor weekly for shifts in which brands Gemini surfaces.');
+  }
+
+  if (topBrand && brand && topBrand.brand.toLowerCase() !== brand.trim().toLowerCase()) {
+    recs.push(`<strong style="color:var(--text)">"${topBrand.brand}"</strong> is the dominant recommendation here. Analyze their content structure, reviews, and listing keywords to understand what signals Gemini favors.`);
+  }
+
+  recs.push("Run this diagnostic weekly — Gemini's knowledge graph updates regularly. Brand visibility can shift without any changes on your end.");
+  return recs;
+}
+
+async function runAnalysis() {
+  const query = document.getElementById('queryInput').value.trim();
+  const brand = document.getElementById('brandInput').value.trim();
+  if (!query) { document.getElementById('queryInput').focus(); return; }
+
+  document.getElementById('errorBanner').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('analyzeBtn').disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, brandToTrack: brand || null })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderResults(data);
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = false;
+    const b = document.getElementById('errorBanner');
+    b.textContent = '⚠ ' + (err.message || 'Failed to connect. Is the backend running?');
+    b.style.display = 'block';
+  }
+}
+
+function renderResults(data) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = false;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('queryPill').textContent = `"${data.query}"`;
+
+  const { models, aggregatedMentions, brandToTrack } = data;
+  const r = models.gemini;
+  const score = r?.scores?.total ?? 0;
+  const geminiText = r?.text || '';
+  const mentioned = isBrandMentioned(geminiText, brandToTrack);
+
+  // ── KPI Strip ──
+  const latency = r?.latencyMs ? (r.latencyMs / 1000).toFixed(1) + 's' : '—';
+  document.getElementById('kpiStrip').innerHTML = `
+    <div class="kpi-card kpi-score">
+      <div class="kpi-val" style="color:${gradeColor(score)}">${score}</div>
+      <div class="kpi-label">AEO Score</div>
+      <div class="kpi-sub">out of 100</div>
+    </div>
+    <div class="kpi-card kpi-brand ${brandToTrack ? (mentioned ? '' : 'miss') : ''}">
+      <div class="kpi-val" style="color:${brandToTrack ? (mentioned ? 'var(--success)' : 'var(--danger)') : 'var(--muted)'}">
+        ${brandToTrack ? (mentioned ? 'YES' : 'NO') : '—'}
+      </div>
+      <div class="kpi-label">Brand Mentioned</div>
+      <div class="kpi-sub">${brandToTrack ? `"${brandToTrack}"` : 'no brand entered'}</div>
+    </div>
+    <div class="kpi-card kpi-brands">
+      <div class="kpi-val" style="color:var(--gold)">${aggregatedMentions?.length ?? 0}</div>
+      <div class="kpi-label">Brands Detected</div>
+      <div class="kpi-sub">${aggregatedMentions?.[0] ? `#1: ${aggregatedMentions[0].brand}` : 'none found'}</div>
+    </div>
+    <div class="kpi-card kpi-speed">
+      <div class="kpi-val" style="color:var(--gemini);font-size:22px">${latency}</div>
+      <div class="kpi-label">Response Time</div>
+      <div class="kpi-sub">${r?.wordCount ?? 0} words</div>
+    </div>
+  `;
+
+  // ── Gemini Card ──
+  document.getElementById('geminiCard').innerHTML = `
+    <div class="gc-top">
+      <div class="gc-model">
+        <div class="gc-icon">G</div>
+        <div>
+          <div class="gc-name">Gemini</div>
+          <div class="gc-sub">2.5 Flash · Google DeepMind</div>
+        </div>
+      </div>
+      <div class="gc-grade" style="color:${gradeColor(score)}">${letterGrade(score)}</div>
+    </div>
+    <div class="gc-body">
+      <div class="gc-score-block">
+        <div class="gc-score-num" style="color:${gradeColor(score)}">${score}<span style="font-size:18px;color:var(--muted)">/100</span></div>
+        <div class="gc-score-label">Brand Visibility Score</div>
+        <div class="gc-bar-track"><div class="gc-bar-fill" id="gcBar"></div></div>
+      </div>
+      <div class="gc-meta">
+        <div class="gc-meta-row">
+          <span class="gc-meta-key">Sentiment</span>
+          <span class="sentiment-badge ${r?.sentiment || 'Neutral'}">${r?.sentiment || 'Neutral'}</span>
+        </div>
+        <div class="gc-meta-row">
+          <span class="gc-meta-key">Latency</span>
+          <span class="gc-meta-val" style="color:var(--gemini)">${latency}</span>
+        </div>
+        <div class="gc-meta-row">
+          <span class="gc-meta-key">Word Count</span>
+          <span class="gc-meta-val">${r?.wordCount ?? 0}</span>
+        </div>
+        <div class="gc-meta-row">
+          <span class="gc-meta-key">Brand in Response</span>
+          <span class="gc-meta-val" style="color:${brandToTrack ? (mentioned ? 'var(--success)' : 'var(--danger)') : 'var(--muted)'}">
+            ${brandToTrack ? (mentioned ? '✓ Yes' : '✗ No') : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+  setTimeout(() => {
+    const bar = document.getElementById('gcBar');
+    if (bar) bar.style.width = score + '%';
+  }, 100);
+
+  // ── Recs ──
+  const recs = generateRecs(data);
+  document.getElementById('recPanel').innerHTML = `
+    <div class="rec-head">💡 AEO Recommendations</div>
+    <div class="rec-list">${recs.map(r => `<div class="rec-item"><span class="rec-arrow">→</span><span>${r}</span></div>`).join('')}</div>
+  `;
+
+  // ── Brand List ──
+  const blEl = document.getElementById('brandList');
+  if (!aggregatedMentions?.length) {
+    blEl.innerHTML = '<p style="color:var(--muted);font-size:12px;font-family:JetBrains Mono,monospace">No recognizable brands detected.</p>';
+  } else {
+    const maxCount = aggregatedMentions[0].totalCount;
+    blEl.innerHTML = aggregatedMentions.map((m, i) => `
+      <div class="brand-item">
+        <span class="brand-num">#${i+1}</span>
+        <span class="brand-name" style="${brandToTrack && m.brand.toLowerCase()===brandToTrack.trim().toLowerCase() ? 'color:var(--accent)' : ''}">${m.brand}</span>
+        <div class="brand-bar-wrap"><div class="brand-bar-fill" style="width:${(m.totalCount/maxCount)*100}%"></div></div>
+        <span class="brand-count">${m.totalCount}×</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Breakdown ──
+  const bdEl = document.getElementById('breakdownList');
+  if (r?.scores?.breakdown) {
+    bdEl.innerHTML = r.scores.breakdown.map(b => `
+      <div class="breakdown-item">
+        <span class="bd-label">${b.label}</span>
+        <div class="bd-track"><div class="bd-fill" style="width:${(b.score/b.max)*100}%"></div></div>
+        <span class="bd-val">${b.score}/${b.max}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Response ──
+  document.getElementById('responseBody').innerHTML =
+    brandToTrack ? highlightBrand(geminiText || '[No response]', brandToTrack) : escapeHtml(geminiText || '[No response]');
+
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('queryInput').addEventListener('keydown', e => { if (e.key === 'Enter') runAnalysis(); });
+});
+</script>
+</body>
+</html>
